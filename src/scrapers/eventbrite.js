@@ -45,25 +45,11 @@ class EventbriteScraper extends BaseScraper {
         });
       });
 
-      // keeps local/demo pipelines green when markup no longer matches
+      // when selectors no longer match, do not fabricate data for downstream consumers
       if (events.length === 0) {
         logger.warn(
-          'Eventbrite: no cards matched current selectors; returning a static placeholder row so the pipeline stays testable'
+          'Eventbrite: no cards matched current selectors; returning an empty result set'
         );
-        const soon = new Date();
-        soon.setDate(soon.getDate() + 7);
-        events.push({
-          id: 'eventbrite-placeholder',
-          title: 'Discover tech events on Eventbrite',
-          description: 'Update selectors in scrapers/eventbrite.js when Eventbrite HTML changes.',
-          startDate: soon.toISOString(),
-          endDate: null,
-          location: { name: 'Online', city: 'Various' },
-          url: url,
-          category: 'Technology',
-          isFree: true,
-          organizer: 'Eventbrite',
-        });
       }
     } catch (error) {
       throw new Error(`Eventbrite scraping failed: ${error.message}`);
