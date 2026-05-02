@@ -3,11 +3,11 @@
 Backend service that aggregates event data from multiple public sources, normalizes it, and exposes it through a REST API.
 
 ## Features
-- Scrapes events from public listing pages (Eventbrite HTML + Meetup via Puppeteer)
-- Normalizes source-specific rows into a shared schema
-- Persists events in PostgreSQL with upsert by `external_id`
+- scrapes events from public listing pages (Eventbrite HTML + Meetup via Puppeteer)
+- normalizes source-specific rows into a shared schema
+- persists events in PostgreSQL with upsert by `external_id`
 - REST API with optional Redis-backed caching and rate limiting
-- Background scraping worker (Bull + Redis)
+- background scraping worker (Bull + Redis)
 
 ## Tech Stack
 - Node.js, Express
@@ -18,15 +18,15 @@ Backend service that aggregates event data from multiple public sources, normali
 ## Project layout
 ```
 src/
-├── app.js                 # Express app factory & HTTP server
-├── config/                # database, redis, Bull queue
-├── jobs/                  # worker job definitions (scrape queue)
-├── middleware/            # auth, cache, errors, rate limit
-├── routes/                # events, health
-├── scrapers/              # per-source scrapers + BaseScraper
-├── services/              # event + scraping orchestration
+├── app.js # Express app factory & HTTP server
+├── config/ # database, redis, Bull queue
+├── jobs/ # worker job definitions (scrape queue)
+├── middleware/ # auth, cache, errors, rate limit
+├── routes/ # events, health
+├── scrapers/ # per-source scrapers + BaseScraper
+├── services/ # event + scraping orchestration
 ├── utils/
-migrations/                # SQL migrations
+migrations/ # SQL migrations
 docker/docker-compose.yml  # Postgres + Redis for local dev
 ```
 
@@ -87,6 +87,14 @@ curl -s -X POST http://localhost:3000/api/v1/events/scrape \
   -H "X-API-Key: dev-secret-change-me" \
   -d '{}'
 ```
+
+## Screenshots
+<img width="1165" height="573" alt="Screenshot 2026-05-01 at 11 53 55 PM" src="https://github.com/user-attachments/assets/a4ef92af-6eb6-496c-84d5-6a2ca6186a1a" />
+<img width="1156" height="590" alt="Screenshot 2026-05-01 at 11 54 08 PM" src="https://github.com/user-attachments/assets/7e2dcdc1-0913-4acb-8cf3-a981e359c88b" />
+<img width="884" height="735" alt="Screenshot 2026-05-01 at 11 58 23 PM" src="https://github.com/user-attachments/assets/b66bbce7-3bc0-42ba-a2dc-8d68603d04bc" />
+<img width="872" height="735" alt="Screenshot 2026-05-01 at 11 59 35 PM" src="https://github.com/user-attachments/assets/07a073dc-13f5-4ce2-b176-69765d3e0c80" />
+<img width="862" height="609" alt="Screenshot 2026-05-01 at 11 59 52 PM" src="https://github.com/user-attachments/assets/11065935-f60f-436b-975b-ed9fbfd4057a" />
+
 
 ## Design notes
 - Scrapers are isolated per source; `BaseScraper` normalizes rows and generates stable `external_id` when a source omits ids.
