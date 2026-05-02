@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
-const { isRedisAvailable, getRedisClient } = require('../config/redis');
+const { isRedisAvailable, isRedisConfigured, getRedisClient } = require('../config/redis');
 
 // returns 200 only when db + optional redis are usable; skipped redis is not_configured, not unhealthy
 router.get('/', async (req, res) => {
@@ -22,8 +22,13 @@ router.get('/', async (req, res) => {
     health.status = 'degraded';
   }
 
-  if (!isRedisAvailable()) {
+  if (!isRedisConfigured()) {
+    // intentionally disabled via REDIS_ENABLED=false — not a health concern
     health.services.redis = 'not_configured';
+  } else if (!isRedisAvailable()) {
+    // was intended but failed to connect at startup — treat as unhealthy
+    health.services.redis = 'unhealthy';
+    health.status = 'degraded';
   } else {
     try {
       await getRedisClient().ping();

@@ -10,10 +10,11 @@ class BaseScraper {
     throw new Error('scrape() must be implemented by subclass');
   }
 
-  // postgres upserts on external_id — derive one when upstream omits stable ids
+  // postgres upserts on external_id — always prefix with source so ids from different
+  // sources never collide on the global unique constraint
   stableExternalId(rawEvent) {
     if (rawEvent.id) {
-      return String(rawEvent.id);
+      return `${this.name}-${rawEvent.id}`;
     }
     const basis = `${this.name}|${rawEvent.title || ''}|${rawEvent.startDate || ''}|${rawEvent.url || ''}`;
     const hash = crypto.createHash('sha256').update(basis).digest('hex').slice(0, 32);

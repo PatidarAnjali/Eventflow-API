@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 
 let client;
 let available = false;
+let configured = false; // true when redis init was attempted (not explicitly disabled)
 
 // prefer REDIS_URL in production; otherwise host/port with sane defaults
 function redisUrl() {
@@ -20,6 +21,11 @@ function isRedisAvailable() {
   return Boolean(available && client);
 }
 
+// true when redis was intended to be used (REDIS_ENABLED != 'false'); false only when explicitly disabled
+function isRedisConfigured() {
+  return configured;
+}
+
 // when redis fails or REDIS_ENABLED=false, api still starts (memory rate limits, no http cache)
 async function initializeRedis() {
   if (process.env.REDIS_ENABLED === 'false') {
@@ -27,6 +33,7 @@ async function initializeRedis() {
     return;
   }
 
+  configured = true; // redis was intended — connection failures are real errors
   try {
     client = redis.createClient({ url: redisUrl() });
     client.on('error', (err) => {
@@ -81,5 +88,6 @@ module.exports = {
   initializeRedis,
   getRedisClient,
   isRedisAvailable,
+  isRedisConfigured,
   invalidateEventsCache,
 };
