@@ -1,62 +1,39 @@
+require('dotenv').config();
 const { scrapeQueue } = require('../config/queue');
 const scrapingService = require('../services/scrapingService');
 const logger = require('../utils/logger');
 
-// define job processor
-scrapeQueue.process(async (job) => {
-  logger.info('Processing scraping job', { jobId: job.id });
-  
-  const {source} = job.data;
-  
-  try {
-    let results;
-    
-    if(source){
-      results = await scrapingService.runScraper(source);
-    } else {
-      results = await scrapingService.runAllScrapers();
-    }
-    
-    return results;
+// loaded by worker.js; keeps redis + bull running alongside scrape logic
+const concurrency = Math.max(1, parseInt(process.env.SCRAPE_JOB_CONCURRENCY, 10) || 1);
 
-  } catch (error) {
-
-    logger.error('Job processing failed', { 
-      jobId: job.id, 
-      error: error.message 
-    });
-
-    throw error;
-
-  }
+scrapeQueue.process(concurrency, async (job) => {
+  logger.info('Processing scrape job', {
+    jobId: job.id,
+    name: job.name,
+    attemptsMade: job.attemptsMade,
+  });
+  return scrapingService.runAllScrapers();
 });
 
-// schedule recurring scraping jobs
-async function scheduleScrapingJobs() {
-  const intervalHours = parseInt(process.env.SCRAPE_INTERVAL_HOURS) || 6;
-  
-  // rmove all existing repeat jobs
-  const repeatableJobs = await scrapeQueue.getRepeatableJobs();
-  for (const job of repeatableJobs) {
-    await scrapeQueue.removeRepeatableByKey(job.key);
-  }
-  
-  // schedule new job
-  await scrapeQueue.add(
-    {},
-    {
-      repeat: {
-        every: intervalHours * 60 * 60 * 1000, // cnvert hours to milliseconds
-      },
-    }
-  );
-  
-  logger.info(`Scheduled scraping jobs every ${intervalHours} hours`);
+// optional fixed-interval job; omit env var to only scrape when jobs are added manually
+const intervalMs = parseInt(process.env.SCRAPE_INTERVAL_MS, 10);
+if (!Number.isNaN(intervalMs) && intervalMs >= 60_000) {
+  scrapeQueue
+    .add(
+      'scheduled-scrape',
+      {},
+      {
+        repeat: { every: intervalMs },
+        jobId: 'eventflow-scheduled-scrape',
+        removeOnComplete: 50,
+      }
+    )
+    .then(() => {
+      logger.info('Registered recurring scrape job', { everyMs: intervalMs });
+    })
+    .catch((err) => {
+      logger.error('Failed to register recurring scrape job', { error: err.message });
+    });
 }
 
-// initialize scheduling when module is loaded
-scheduleScrapingJobs().catch(err => {
-  logger.error('Failed to schedule jobs', { error: err.message });
-});
-
-module.exports = { scrapeQueue, scheduleScrapingJobs };
+module.exports = { scrapeQueue };

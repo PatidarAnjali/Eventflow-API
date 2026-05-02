@@ -1,7 +1,9 @@
 const scrapers = require('../scrapers');
 const eventService = require('./eventService');
 const logger = require('../utils/logger');
+const { invalidateEventsCache } = require('../config/redis');
 
+// orchestrates scrapers and persists rows; invalidates redis http cache after writes
 class ScrapingService {
 
   async runAllScrapers()  {
@@ -28,6 +30,8 @@ class ScrapingService {
       }
     }
 
+    // so GET /events does not keep serving empty cached bodies after a successful scrape
+    await invalidateEventsCache();
     return results;
   }
 
@@ -44,6 +48,8 @@ class ScrapingService {
       await eventService.createEvent(event);
     }
 
+    // same cache bust as runAllScrapers so single-source runs refresh cached lists
+    await invalidateEventsCache();
     return {source: scraperName, count: events.length};
   }
 }
