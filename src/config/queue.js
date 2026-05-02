@@ -1,10 +1,12 @@
 const Queue = require('bull');
 const logger = require('../utils/logger');
 
+// worker process uses this queue; bull talks to redis directly (same host/port as app cache)
 const scrapeQueue = new Queue('event-scraping', {
-   redis: {
-    host: process.env.REDIS_HOST,
-    port: process.env.REDIS_PORT,
+  redis: {
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: parseInt(process.env.REDIS_PORT, 10) || 6379,
+    password: process.env.REDIS_PASSWORD || undefined,
   },
 });
 

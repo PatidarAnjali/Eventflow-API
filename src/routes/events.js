@@ -3,14 +3,11 @@ const router = express.Router();
 const eventService = require('../services/eventService');
 const scrapingService = require('../services/scrapingService');
 const authenticate = require('../middleware/auth');
-const rateLimiter = require('../middleware/rateLimit');
 const cacheMiddleware = require('../middleware/cache');
 const logger = require('../utils/logger');
 
-// apply rate limiting to all routes
-router.use(rateLimiter);
-
-// GET /api/v1/events - list all events
+// rate limit applied in app.js; cache ttl 5m for list responses
+// get /api/v1/events — list all events
 router.get('/', cacheMiddleware(300), async (req, res, next) => {
   
   try{
@@ -40,7 +37,7 @@ router.get('/', cacheMiddleware(300), async (req, res, next) => {
   }
 });
 
-// GET /api/v1/events/:id - get single event
+// get /api/v1/events/:id — single event
 router.get('/:id', cacheMiddleware(300), async (req, res, next) => {
   
   try{
@@ -63,7 +60,8 @@ router.get('/:id', cacheMiddleware(300), async (req, res, next) => {
 
 });
 
-// POST /api/v1/events/scrape - Trigger scraping manually
+// requires header x-api-key matching process.env.API_KEY (postman: use headers tab, not query params)
+// post /api/v1/events/scrape — trigger scraping manually
 router.post('/scrape', authenticate, async (req, res, next) => {
 
   try{
@@ -89,7 +87,7 @@ router.post('/scrape', authenticate, async (req, res, next) => {
   }
 });
 
-// GET /api/v1/events/stats - get statistics
+// get /api/v1/events/stats/summary — aggregates
 router.get('/stats/summary', cacheMiddleware(600), async (req, res, next) => {
   try{
     const stats = await eventService.getEventStats();

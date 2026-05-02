@@ -1,1 +1,1 @@
-// lolz
+module.exports = {};
