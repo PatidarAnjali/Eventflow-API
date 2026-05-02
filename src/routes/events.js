@@ -37,27 +37,18 @@ router.get('/', cacheMiddleware(300), async (req, res, next) => {
   }
 });
 
-// get /api/v1/events/:id — single event
-router.get('/:id', cacheMiddleware(300), async (req, res, next) => {
-  
+// get /api/v1/events/stats/summary — aggregates (must be before /:id to avoid param capture)
+router.get('/stats/summary', cacheMiddleware(600), async (req, res, next) => {
   try{
-    const event = await eventService.getEventById(req.params.id);
+    const stats = await eventService.getEventStats();
     
-    if (!event) {
-      return res.status(404).json({
-        success: false,
-        error: 'Event not found',
-      });
-    }
-
     res.json({
       success: true,
-      data: event,
+      data: stats,
     });
-  } catch(error) {
+  } catch (error) {
     next(error);
   }
-
 });
 
 // requires header x-api-key matching process.env.API_KEY (postman: use headers tab, not query params)
@@ -87,18 +78,27 @@ router.post('/scrape', authenticate, async (req, res, next) => {
   }
 });
 
-// get /api/v1/events/stats/summary — aggregates
-router.get('/stats/summary', cacheMiddleware(600), async (req, res, next) => {
+// get /api/v1/events/:id — single event
+router.get('/:id', cacheMiddleware(300), async (req, res, next) => {
+  
   try{
-    const stats = await eventService.getEventStats();
+    const event = await eventService.getEventById(req.params.id);
     
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        error: 'Event not found',
+      });
+    }
+
     res.json({
       success: true,
-      data: stats,
+      data: event,
     });
-  } catch (error) {
+  } catch(error) {
     next(error);
   }
+
 });
 
 module.exports = router;
