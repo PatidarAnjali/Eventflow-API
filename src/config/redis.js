@@ -53,9 +53,22 @@ function getRedisClient() {
 async function invalidateEventsCache() {
   if (!isRedisAvailable()) return;
   try {
-    const keys = await getRedisClient().keys('cache:/api/v1/events*');
-    if (keys.length > 0) {
-      await getRedisClient().del(keys);
+    const redisClient = getRedisClient();
+    const batch = [];
+
+    for await (const key of redisClient.scanIterator({
+      MATCH: 'cache:/api/v1/events*',
+      COUNT: 100,
+    })) {
+      batch.push(key);
+      if (batch.length >= 100) {
+        await redisClient.del(batch);
+        batch.length = 0;
+      }
+    }
+
+    if (batch.length > 0) {
+      await redisClient.del(batch);
     }
   } catch (error) {
     logger.warn('Failed to invalidate events cache', { error: error.message });
