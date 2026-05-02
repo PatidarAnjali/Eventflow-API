@@ -22,11 +22,16 @@ function cacheMiddleware(duration = 300) {
 
       // defer setEx so we do not block the response on redis write
       res.json = function jsonWithCache(data) {
-        getRedisClient()
-          .setEx(key, duration, JSON.stringify(data))
-          .catch((err) => logger.error('Cache set failed', { error: err.message }));
-        logger.debug('Cache set', { key, duration });
-        originalSend.call(this, data);
+        if (this.statusCode >= 200 && this.statusCode < 300) {
+          getRedisClient()
+            .setEx(key, duration, JSON.stringify(data))
+            .catch((err) => logger.error('Cache set failed', { error: err.message }));
+          logger.debug('Cache set', { key, duration });
+        } else {
+          logger.debug('Skipping cache for non-success response', { key, statusCode: this.statusCode });
+        }
+
+        return originalSend.call(this, data);
       };
 
       next();
